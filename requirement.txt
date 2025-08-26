@@ -26,5 +26,9 @@ streamlit
 pandas
 numpy
 scikit-learn
+streamlit
+flask
+
+
 
 
