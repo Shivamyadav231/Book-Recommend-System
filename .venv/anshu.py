@@ -1,49 +1,53 @@
-from flask import Flask, render_template, request
+import streamlit as st
 import pickle
 import numpy as np
+import pandas as pd
 
 # Load pickle files
 popular_pf = pickle.load(open('popular.pkl', 'rb'))
 pf = pickle.load(open('pf.pkl', 'rb'))
 books = pickle.load(open('books.pkl', 'rb'))
-similarity_scores = pickle.load(open(r"C:\Users\User\PycharmProjects\Book_Store\similarity_scores.pkl", "rb"))
+similarity_scores = pickle.load(open('similarity_scores.pkl', 'rb'))   # NOTE: relative path
 
-# Initialize app
-app = Flask(__name__)
+# Streamlit UI
+st.title("📚 Book Recommendation System")
 
-@app.route('/')
-def index():
-    return render_template(
-        'Shivam.html',
-        book_name=list(popular_pf['Book-Title'].values),
-        author=list(popular_pf['Book-Author'].values),
-        image=list(popular_pf['Image-URL-M'].values),
-        votes=list(popular_pf['num_ratings'].values),
-        rating=list(popular_pf['avg_ratings'].values)
-    )
+# Show Popular Books
+st.header("🔥 Popular Books")
+for i in range(len(popular_pf)):
+    with st.container():
+        col1, col2 = st.columns([1,3])
+        with col1:
+            st.image(popular_pf['Image-URL-M'].values[i], width=100)
+        with col2:
+            st.write(f"**{popular_pf['Book-Title'].values[i]}**")
+            st.write(f"✍️ {popular_pf['Book-Author'].values[i]}")
+            st.write(f"⭐ {popular_pf['avg_ratings'].values[i]} ({popular_pf['num_ratings'].values[i]} votes)")
 
-@app.route('/recommend')
-def recommend_ui():
-    return render_template("recommend.html")
+# Recommendation Section
+st.header("🔎 Find Similar Books")
+user_input = st.text_input("Enter a book name:")
 
-@app.route('/recommend_books', methods=['POST'])
-def recommend_books():
-    user_input = request.form.get('user_input')
-    index = np.where(pf.index == user_input)[0][0]
+if st.button("Recommend"):
+    if user_input in pf.index:
+        index = np.where(pf.index == user_input)[0][0]
+        scores = list(enumerate(similarity_scores[index]))
+        sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
 
-    scores = list(enumerate(similarity_scores[index]))
-    sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+        st.subheader("📖 Recommended Books:")
+        for i in sorted_scores[1:6]:
+            temp_df = books[books['Book-Title'] == pf.index[i[0]]]
+            book_title = temp_df.drop_duplicates('Book-Title')['Book-Title'].values[0]
+            author = temp_df.drop_duplicates('Book-Title')['Book-Author'].values[0]
+            image = temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values[0]
 
-    data = []
-    for i in sorted_scores[1:6]:
-        item = []
-        temp_df = books[books['Book-Title'] == pf.index[i[0]]]
-        item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Title'].values))
-        item.extend(list(temp_df.drop_duplicates('Book-Title')['Book-Author'].values))
-        item.extend(list(temp_df.drop_duplicates('Book-Title')['Image-URL-M'].values))
-        data.append(item)
+            with st.container():
+                col1, col2 = st.columns([1,3])
+                with col1:
+                    st.image(image, width=100)
+                with col2:
+                    st.write(f"**{book_title}**")
+                    st.write(f"✍️ {author}")
+    else:
+        st.error("Book not found in database. Try another one.")
 
-    return render_template("recommend.html", data=data)
-
-if __name__ == "__main__":
-    app.run(debug=True)
