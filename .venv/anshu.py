@@ -5,6 +5,7 @@ import pandas as pd
 
 # Load pickle files
 popular_pf = pickle.load(open('popular.pkl', 'rb'))
+
 pf = pickle.load(open('pf.pkl', 'rb'))
 books = pickle.load(open('books.pkl', 'rb'))
 similarity_scores = pickle.load(open('similarity_scores.pkl', 'rb'))   # NOTE: relative path
@@ -50,4 +51,8 @@ if st.button("Recommend"):
                     st.write(f"✍️ {author}")
     else:
         st.error("Book not found in database. Try another one.")
+
+
+
+
 
